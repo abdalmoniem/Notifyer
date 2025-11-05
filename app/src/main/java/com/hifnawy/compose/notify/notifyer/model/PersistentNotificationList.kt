@@ -4,6 +4,7 @@ import android.content.Context
 import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import com.hifnawy.compose.notify.notifyer.dataStore.DataStoreInstance
 import kotlinx.coroutines.CoroutineScope
@@ -150,6 +151,22 @@ class PersistentNotificationList(
         items.replaceAll(operator)
         persist()
     }
+
+    fun replaceAll(newList: List<Notification>) {
+        Snapshot.withMutableSnapshot {
+            items.clear()
+            items.addAll(newList)
+        }
+        persist()
+    }
+
+    fun shuffle() {
+        Snapshot.withMutableSnapshot {
+            items.shuffle()
+        }
+        persist()
+    }
+
 
     override fun retainAll(elements: Collection<Notification>): Boolean {
         val result = items.retainAll(elements)

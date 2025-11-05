@@ -23,6 +23,7 @@ import androidx.compose.ui.tooling.preview.Devices
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.Wallpapers
 import androidx.compose.ui.unit.dp
+import com.hifnawy.compose.notify.notifyer.BuildConfig
 import com.hifnawy.compose.notify.notifyer.R
 import com.hifnawy.compose.notify.notifyer.ui.theme.NotifyerTheme
 
@@ -38,6 +39,7 @@ import com.hifnawy.compose.notify.notifyer.ui.theme.NotifyerTheme
  * @param onShuffleClick [() -> Unit][onShuffleClick] The callback function to be used as the shuffle action button.
  * @param onDeleteAllClick [() -> Unit][onDeleteAllClick] The callback function to be used as the delete all action button.
  * @param onClearAllClick [() -> Unit][onClearAllClick] The callback function to be used as the clear all action button.
+ * @param onClearAndInsertClick [() -> Unit][onClearAndInsertClick] The callback function to be used as the clear and insert action button.
  * @param scaffoldContent [(paddingValues: PaddingValues) -> Unit][scaffoldContent] The composable function to be used as the content area.
  */
 @Composable
@@ -49,6 +51,7 @@ fun Scaffolding(
         onShuffleClick: () -> Unit = {},
         onDeleteAllClick: () -> Unit = {},
         onClearAllClick: () -> Unit = {},
+        onClearAndInsertClick: () -> Unit = {},
         scaffoldContent: @Composable (paddingValues: PaddingValues) -> Unit
 ) {
     NotifyerTheme(
@@ -61,6 +64,14 @@ fun Scaffolding(
                     TopAppBar(
                             title = { Text("Notification List") },
                             actions = {
+                                if (BuildConfig.DEBUG) {
+                                    IconButton(onClick = onClearAndInsertClick) {
+                                        Icon(
+                                                painter = painterResource(id = R.drawable.format_list_bulleted_add_24px),
+                                                contentDescription = "Clear and Insert 30 Items"
+                                        )
+                                    }
+                                }
                                 IconButton(onClick = onShuffleClick) {
                                     Icon(
                                             painter = painterResource(id = R.drawable.shuffle_24px),

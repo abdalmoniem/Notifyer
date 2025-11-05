@@ -50,7 +50,7 @@ import java.util.UUID
  */
 @Composable
 @OptIn(ExperimentalFoundationApi::class)
-fun Notification(
+fun NotificationCard(
         id: UUID,
         title: String,
         message: String,
@@ -119,7 +119,7 @@ private fun NotificationPreview() {
     NotifyerTheme {
         Scaffold { innerPadding ->
             Box(modifier = Modifier.padding(innerPadding)) {
-                Notification(
+                NotificationCard(
                         id = UUID.randomUUID(),
                         title = "Notification Title",
                         message = "Notification Message",

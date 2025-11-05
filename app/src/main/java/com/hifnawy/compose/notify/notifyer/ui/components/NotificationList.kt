@@ -12,7 +12,6 @@ import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Devices
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.Wallpapers
@@ -40,16 +39,14 @@ fun NotificationList(
         onItemCardClick: (notification: Notification) -> Unit = {},
         onItemButtonClick: (notification: Notification) -> Unit = {}
 ) {
-    val context = LocalContext.current
-
     LazyVerticalGrid(
             columns = GridCells.Adaptive(minSize = 300.dp),
             state = listState,
             verticalArrangement = Arrangement.spacedBy(10.dp),
             modifier = modifier.padding(start = 10.dp, end = 10.dp)
     ) {
-        items(notifications) { notification ->
-            Notification(
+        items(notifications, key = { it.id }) { notification ->
+            NotificationCard(
                     id = notification.id,
                     title = notification.title,
                     message = notification.message,

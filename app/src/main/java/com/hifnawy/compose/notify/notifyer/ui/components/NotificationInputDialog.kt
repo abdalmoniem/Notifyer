@@ -6,6 +6,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -13,19 +15,26 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.tooling.preview.Devices
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.Wallpapers
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.DialogProperties
 import com.hifnawy.compose.notify.notifyer.model.Notification
 import com.hifnawy.compose.notify.notifyer.ui.theme.NotifyerTheme
 import java.util.UUID
@@ -50,9 +59,15 @@ fun NotificationInputDialog(
     var notificationId by remember { mutableStateOf(notification?.id ?: UUID.randomUUID()) }
 
     AlertDialog(
+            properties = DialogProperties(dismissOnClickOutside = false),
             onDismissRequest = onDismissRequest,
             title = { Text(title) },
             text = {
+                val focusRequesterTitle = remember { FocusRequester() }
+                val focusRequesterMessage = remember { FocusRequester() }
+                val focusManager = LocalFocusManager.current
+                val keyboardController = LocalSoftwareKeyboardController.current
+
                 Column {
                     Text(
                             modifier = Modifier
@@ -66,7 +81,8 @@ fun NotificationInputDialog(
                     TextField(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(vertical = 4.dp),
+                                .padding(vertical = 4.dp)
+                                .focusRequester(focusRequesterTitle),
                             shape = RoundedCornerShape(10.dp),
                             colors = TextFieldDefaults.colors(
                                     focusedIndicatorColor = Color.Transparent,
@@ -76,23 +92,36 @@ fun NotificationInputDialog(
                             value = notificationTitle,
                             onValueChange = { notificationTitle = it },
                             placeholder = { Text("Notification Title") },
-                            label = { Text("Notification Title") }
+                            label = { Text("Notification Title") },
+                            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+                            keyboardActions = KeyboardActions(onNext = { focusRequesterMessage.requestFocus() })
+
                     )
                     TextField(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(vertical = 4.dp),
+                                .padding(vertical = 4.dp)
+                                .focusRequester(focusRequesterMessage),
                             shape = RoundedCornerShape(10.dp),
                             colors = TextFieldDefaults.colors(
                                     focusedIndicatorColor = Color.Transparent,
                                     unfocusedIndicatorColor = Color.Transparent
                             ),
-                            singleLine = false,
+                            singleLine = true,
                             value = notificationMessage,
                             onValueChange = { notificationMessage = it },
                             placeholder = { Text("Notification Message") },
-                            label = { Text("Notification Message") }
+                            label = { Text("Notification Message") },
+                            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                            keyboardActions = KeyboardActions(onDone = {
+                                focusManager.clearFocus()
+                                keyboardController?.hide()
+                            })
                     )
+                }
+
+                LaunchedEffect(Unit) {
+                    focusRequesterTitle.requestFocus()
                 }
             },
             confirmButton = {

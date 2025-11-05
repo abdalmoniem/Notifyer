@@ -118,7 +118,7 @@ class MainActivity : ComponentActivity() {
                     },
                     onPermissionRationaleDismiss = { shouldShowRationale = false },
                     onAddClick = { isEditDialogVisible = true },
-                    onShuffleClick = { viewModel.notifications.shuffle() },
+                    onShuffleClick = viewModel.notifications::shuffle,
                     onDeleteAllClick = { isDeleteAllDialogVisible = true },
                     onDeleteAllConfirm = {
                         viewModel.notifications.clear()
@@ -129,6 +129,16 @@ class MainActivity : ComponentActivity() {
                     onClearAllClick = {
                         notificationManager.cancelAll()
                         notificationIdsSent.clear()
+                    },
+                    onClearAndInsertClick = {
+                        val newList = (1 .. 30).map { index ->
+                            Notification(
+                                    id = UUID.randomUUID(),
+                                    title = "Notification #${index.toString().padStart(2, '0')} Title",
+                                    message = "Notification #${index.toString().padStart(2, '0')} Message"
+                            )
+                        }
+                        viewModel.notifications.replaceAll(newList)
                     },
                     onItemCardClick = { notification ->
                         updateNotification = notification
@@ -177,6 +187,7 @@ class MainActivity : ComponentActivity() {
      * @param onAddClick [() -> Unit][onAddClick] The callback function to be used when the floating action button is clicked.
      * @param onShuffleClick [() -> Unit][onShuffleClick] The callback function to be used when the shuffle button is clicked.
      * @param onClearAllClick [() -> Unit][onClearAllClick] The callback function to be used when the clear all button is clicked.
+     * @param onClearAndInsertClick [() -> Unit][onClearAndInsertClick] The callback function to be used when the clear and insert button is clicked.
      * @param onDeleteAllClick [() -> Unit][onDeleteAllClick] The callback function to be used when the delete all button is clicked.
      * @param onDeleteAllConfirm [() -> Unit][onDeleteAllConfirm] The callback function to be used when the confirm button in the delete all dialog is clicked.
      * @param onDeleteAllDismiss [() -> Unit][onDeleteAllDismiss] The callback function to be used when the dismiss button in the delete all dialog is clicked.
@@ -200,6 +211,7 @@ class MainActivity : ComponentActivity() {
             onAddClick: () -> Unit = {},
             onShuffleClick: () -> Unit = {},
             onClearAllClick: () -> Unit = {},
+            onClearAndInsertClick: () -> Unit = {},
             onDeleteAllClick: () -> Unit = {},
             onDeleteAllConfirm: () -> Unit = {},
             onDeleteAllDismiss: () -> Unit = {},
@@ -219,7 +231,8 @@ class MainActivity : ComponentActivity() {
                 },
                 onShuffleClick = onShuffleClick,
                 onDeleteAllClick = onDeleteAllClick,
-                onClearAllClick = onClearAllClick
+                onClearAllClick = onClearAllClick,
+                onClearAndInsertClick = onClearAndInsertClick
         ) { innerPadding ->
             NotificationList(
                     listState = listState,
@@ -451,12 +464,12 @@ class MainActivity : ComponentActivity() {
     )
     private fun MainScreenPreview() {
         val notifications = remember { mutableStateListOf<Notification>() }
-        for (i in 0 until 20) {
+        for (index in 1..30) {
             notifications.add(
                     Notification(
                             id = UUID.randomUUID(),
-                            title = "Notification Title #${i}",
-                            message = "Notification #${i} Message"
+                            title = "Notification #${index.toString().padStart(2, '0')} Title",
+                            message = "Notification #${index.toString().padStart(2, '0')} Message"
                     )
             )
         }
