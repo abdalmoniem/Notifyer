@@ -287,12 +287,9 @@ fun NotifyerTheme(
 }
 
 @Composable
-fun WidgetTheme(context: Context, content: @Composable () -> Unit) {
+fun WidgetTheme(content: @Composable () -> Unit) {
     val colors = when {
-        Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> ColorProviders(
-                light = dynamicLightColorScheme(context),
-                dark = dynamicDarkColorScheme(context)
-        )
+        Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> GlanceTheme.colors
 
         else                                           -> ColorProviders(
                 light = lightScheme,

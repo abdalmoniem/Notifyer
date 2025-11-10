@@ -7,8 +7,11 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.glance.appwidget.GlanceAppWidgetManager
+import androidx.glance.appwidget.state.updateAppWidgetState
+import androidx.glance.state.PreferencesGlanceStateDefinition
 import com.hifnawy.compose.notify.notifyer.dataStore.DataStoreInstance
 import com.hifnawy.compose.notify.notifyer.ui.components.AppWidget
+import com.hifnawy.compose.notify.notifyer.ui.components.AppWidget.Companion.KEY_INDEX
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.collectLatest
@@ -38,14 +41,10 @@ class PersistentNotificationList(
         get() = items
 
     private fun persist() {
-        coroutineScope.launch {
-            DataStoreInstance.saveNotifications(context, items.toList())
-
-            updateGlanceWidgets()
-        }
+        coroutineScope.launch { DataStoreInstance.saveNotifications(context, items.toList()) }
     }
 
-    private suspend fun updateGlanceWidgets() {
+    private suspend fun updateGlanceWidgets(resetIndex: Boolean = false) {
         val manager = GlanceAppWidgetManager(context)
 
         // Get all active GlanceIds for your specific widget class
@@ -53,6 +52,14 @@ class PersistentNotificationList(
 
         // Iterate over all instances and call update()
         glanceIds.forEach { glanceId ->
+            if (resetIndex) {
+                updateAppWidgetState(context, PreferencesGlanceStateDefinition, glanceId) { prefs ->
+                    prefs.toMutablePreferences().apply {
+                        set(KEY_INDEX, 0)
+                    }
+                }
+            }
+
             AppWidget().update(context, glanceId)
         }
     }
@@ -66,6 +73,7 @@ class PersistentNotificationList(
     override fun set(index: Int, element: Notification): Notification {
         val result = items.set(index, element)
         persist()
+        coroutineScope.launch { updateGlanceWidgets(resetIndex = true) }
         return result
     }
 
@@ -91,24 +99,34 @@ class PersistentNotificationList(
 
     override fun add(element: Notification): Boolean {
         val result = items.add(element)
-        if (result) persist()
+        if (result) {
+            persist()
+            coroutineScope.launch { updateGlanceWidgets(resetIndex = false) }
+        }
         return result
     }
 
     override fun add(index: Int, element: Notification) {
         items.add(index, element)
         persist()
+        coroutineScope.launch { updateGlanceWidgets(resetIndex = false) }
     }
 
     override fun addAll(index: Int, elements: Collection<Notification>): Boolean {
         val result = items.addAll(index, elements)
-        if (result) persist()
+        if (result) {
+            persist()
+            coroutineScope.launch { updateGlanceWidgets(resetIndex = false) }
+        }
         return result
     }
 
     override fun addAll(elements: Collection<Notification>): Boolean {
         val result = items.addAll(elements)
-        if (result) persist()
+        if (result) {
+            persist()
+            coroutineScope.launch { updateGlanceWidgets(resetIndex = false) }
+        }
         return result
     }
 
@@ -116,29 +134,38 @@ class PersistentNotificationList(
     override fun addFirst(element: Notification) {
         items.addFirst(element)
         persist()
+        coroutineScope.launch { updateGlanceWidgets(resetIndex = false) }
     }
 
     @RequiresApi(Build.VERSION_CODES.VANILLA_ICE_CREAM)
     override fun addLast(element: Notification) {
         items.addLast(element)
         persist()
+        coroutineScope.launch { updateGlanceWidgets(resetIndex = false) }
     }
 
     override fun remove(element: Notification): Boolean {
         val result = items.remove(element)
-        if (result) persist()
+        if (result) {
+            persist()
+            coroutineScope.launch { updateGlanceWidgets(resetIndex = true) }
+        }
         return result
     }
 
     override fun removeAt(index: Int): Notification {
         val result = items.removeAt(index)
         persist()
+        coroutineScope.launch { updateGlanceWidgets(resetIndex = true) }
         return result
     }
 
     override fun removeAll(elements: Collection<Notification>): Boolean {
         val result = items.removeAll(elements)
-        if (result) persist()
+        if (result) {
+            persist()
+            coroutineScope.launch { updateGlanceWidgets(resetIndex = true) }
+        }
         return result
     }
 
@@ -146,6 +173,7 @@ class PersistentNotificationList(
     override fun removeFirst(): Notification {
         val notification = items.removeFirst()
         persist()
+        coroutineScope.launch { updateGlanceWidgets(resetIndex = true) }
         return notification
     }
 
@@ -153,6 +181,7 @@ class PersistentNotificationList(
     override fun removeLast(): Notification {
         val notification = items.removeLast()
         persist()
+        coroutineScope.launch { updateGlanceWidgets(resetIndex = true) }
         return notification
     }
 
@@ -160,12 +189,14 @@ class PersistentNotificationList(
         if (items.isNotEmpty()) {
             items.clear()
             persist()
+            coroutineScope.launch { updateGlanceWidgets(resetIndex = true) }
         }
     }
 
     override fun replaceAll(operator: UnaryOperator<Notification>) {
         items.replaceAll(operator)
         persist()
+        coroutineScope.launch { updateGlanceWidgets(resetIndex = true) }
     }
 
     fun replaceAll(newList: List<Notification>) {
@@ -174,6 +205,7 @@ class PersistentNotificationList(
             items.addAll(newList)
         }
         persist()
+        coroutineScope.launch { updateGlanceWidgets(resetIndex = true) }
     }
 
     fun shuffle() {
@@ -181,11 +213,15 @@ class PersistentNotificationList(
             items.shuffle()
         }
         persist()
+        coroutineScope.launch { updateGlanceWidgets(resetIndex = true) }
     }
 
     override fun retainAll(elements: Collection<Notification>): Boolean {
         val result = items.retainAll(elements)
-        if (result) persist()
+        if (result) {
+            persist()
+            coroutineScope.launch { updateGlanceWidgets(resetIndex = true) }
+        }
         return result
     }
 
@@ -204,16 +240,19 @@ class PersistentNotificationList(
         override fun add(element: Notification) {
             iterator.add(element)
             persist()
+            coroutineScope.launch { updateGlanceWidgets(resetIndex = false) }
         }
 
         override fun remove() {
             iterator.remove()
             persist()
+            coroutineScope.launch { updateGlanceWidgets(resetIndex = true) }
         }
 
         override fun set(element: Notification) {
             iterator.set(element)
             persist()
+            coroutineScope.launch { updateGlanceWidgets(resetIndex = true) }
         }
     }
 
@@ -222,5 +261,6 @@ class PersistentNotificationList(
     override fun sort(comparator: Comparator<in Notification>?) {
         sort(items, comparator)
         persist()
+        coroutineScope.launch { updateGlanceWidgets(resetIndex = true) }
     }
 }

@@ -74,9 +74,10 @@ class AppWidget : GlanceAppWidget() {
         provideContent {
             val notifications by DataStoreInstance.getNotifications(context).collectAsState(initial = emptyList())
 
-            WidgetTheme(context) {
+            WidgetTheme {
                 val prefs = currentState<Preferences>()
                 val currentIndex = prefs[KEY_INDEX] ?: 0
+
                 Content(currentIndex, notifications)
             }
         }
@@ -260,7 +261,7 @@ internal class SendNotificationAction : ActionCallback {
         updateAppWidgetState(context = context, glanceId = glanceId) { prefs ->
             val notifications = DataStoreInstance.getNotifications(context).first()
             val index = prefs[KEY_INDEX] ?: 0
-            val notification = notifications.getOrNull(index) ?: return@updateAppWidgetState // Return early if no notification found
+            val notification = notifications.getOrNull(index) ?: return@updateAppWidgetState
 
             sendNotification(context, notificationManager, notification)
         }
