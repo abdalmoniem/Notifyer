@@ -6,7 +6,9 @@ import androidx.annotation.RequiresApi
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.runtime.snapshots.SnapshotStateList
+import androidx.glance.appwidget.GlanceAppWidgetManager
 import com.hifnawy.compose.notify.notifyer.dataStore.DataStoreInstance
+import com.hifnawy.compose.notify.notifyer.ui.components.AppWidget
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.collectLatest
@@ -38,6 +40,20 @@ class PersistentNotificationList(
     private fun persist() {
         coroutineScope.launch {
             DataStoreInstance.saveNotifications(context, items.toList())
+
+            updateGlanceWidgets()
+        }
+    }
+
+    private suspend fun updateGlanceWidgets() {
+        val manager = GlanceAppWidgetManager(context)
+
+        // Get all active GlanceIds for your specific widget class
+        val glanceIds = manager.getGlanceIds(AppWidget::class.java)
+
+        // Iterate over all instances and call update()
+        glanceIds.forEach { glanceId ->
+            AppWidget().update(context, glanceId)
         }
     }
 
@@ -166,7 +182,6 @@ class PersistentNotificationList(
         }
         persist()
     }
-
 
     override fun retainAll(elements: Collection<Notification>): Boolean {
         val result = items.retainAll(elements)

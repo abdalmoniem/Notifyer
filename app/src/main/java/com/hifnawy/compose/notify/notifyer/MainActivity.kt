@@ -46,9 +46,12 @@ import androidx.compose.ui.unit.dp
 import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
+import androidx.glance.appwidget.GlanceAppWidgetManager
+import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.hifnawy.compose.notify.notifyer.model.Notification
+import com.hifnawy.compose.notify.notifyer.ui.components.AppWidget
 import com.hifnawy.compose.notify.notifyer.ui.components.NotificationInputDialog
 import com.hifnawy.compose.notify.notifyer.ui.components.NotificationList
 import com.hifnawy.compose.notify.notifyer.ui.components.Scaffolding
@@ -74,6 +77,8 @@ class MainActivity : ComponentActivity() {
     @ExperimentalMaterial3Api
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        updateGlanceWidgets()
 
         enableEdgeToEdge()
 
@@ -166,6 +171,21 @@ class MainActivity : ComponentActivity() {
                         updateNotification = null
                     }
             )
+        }
+    }
+
+    private fun updateGlanceWidgets() {
+        // Use the lifecycleScope to run the suspend function
+        lifecycleScope.launch {
+            val manager = GlanceAppWidgetManager(this@MainActivity)
+
+            // Get all active GlanceIds for your specific widget class
+            val glanceIds = manager.getGlanceIds(AppWidget::class.java)
+
+            // Iterate over all instances and call update()
+            glanceIds.forEach { glanceId ->
+                AppWidget().update(this@MainActivity, glanceId)
+            }
         }
     }
 

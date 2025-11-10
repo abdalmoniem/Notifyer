@@ -1,5 +1,6 @@
 package com.hifnawy.compose.notify.notifyer.ui.theme
 
+import android.content.Context
 import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
@@ -13,6 +14,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.glance.GlanceTheme
+import androidx.glance.material3.ColorProviders
 
 private val lightScheme = lightColorScheme(
         primary = primaryLight,
@@ -281,4 +284,21 @@ fun NotifyerTheme(
             motionScheme = MotionScheme.expressive(),
             content = content
     )
+}
+
+@Composable
+fun WidgetTheme(context: Context, content: @Composable () -> Unit) {
+    val colors = when {
+        Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> ColorProviders(
+                light = dynamicLightColorScheme(context),
+                dark = dynamicDarkColorScheme(context)
+        )
+
+        else                                           -> ColorProviders(
+                light = lightScheme,
+                dark = darkScheme
+        )
+    }
+
+    GlanceTheme(colors = colors, content = content)
 }

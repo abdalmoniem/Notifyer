@@ -43,6 +43,7 @@ fun NotificationList(
             columns = GridCells.Adaptive(minSize = 300.dp),
             state = listState,
             verticalArrangement = Arrangement.spacedBy(10.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
             modifier = modifier.padding(start = 10.dp, end = 10.dp)
     ) {
         items(notifications, key = { it.id }) { notification ->

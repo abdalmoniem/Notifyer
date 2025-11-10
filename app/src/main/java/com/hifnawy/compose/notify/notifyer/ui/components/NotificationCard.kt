@@ -2,10 +2,10 @@ package com.hifnawy.compose.notify.notifyer.ui.components
 
 import android.content.res.Configuration.UI_MODE_NIGHT_YES
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -21,6 +21,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.Wallpapers
 import androidx.compose.ui.unit.dp
@@ -66,31 +67,40 @@ fun NotificationCard(
     ) {
         Row(
                 modifier = Modifier.padding(10.dp),
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Column {
+            Column(
+                    modifier = Modifier.weight(1f)
+            ) {
                 Text(
                         text = id.toString().uppercase(),
                         fontSize = 15.sp,
                         fontStyle = FontStyle.Italic,
-                        fontWeight = FontWeight.Light
+                        fontWeight = FontWeight.Light,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                 )
 
                 Text(
                         text = title,
                         fontSize = 20.sp,
                         fontStyle = FontStyle.Normal,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                 )
 
                 Text(
                         text = message,
                         fontSize = 15.sp,
                         fontStyle = FontStyle.Normal,
-                        fontWeight = FontWeight.Normal
+                        fontWeight = FontWeight.Normal,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                 )
             }
-            Spacer(modifier = Modifier.weight(1f))
+            // Spacer(modifier = Modifier.weight(1f))
             Button(onClick = { onButtonClick(Notification(id = id, title = title, message = message)) }) {
                 Icon(
                         painter = painterResource(id = R.drawable.notifications_24px),
