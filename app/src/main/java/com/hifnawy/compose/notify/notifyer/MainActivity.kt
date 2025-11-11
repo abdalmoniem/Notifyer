@@ -1,12 +1,6 @@
 package com.hifnawy.compose.notify.notifyer
 
-import android.Manifest
-import android.app.NotificationChannel
-import android.app.NotificationManager
-import android.app.PendingIntent
-import android.content.Context
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.content.res.Configuration.UI_MODE_NIGHT_YES
 import android.net.Uri
 import android.os.Build
@@ -17,7 +11,6 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.compose.foundation.layout.padding
@@ -43,9 +36,6 @@ import androidx.compose.ui.tooling.preview.Devices
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.Wallpapers
 import androidx.compose.ui.unit.dp
-import androidx.core.app.ActivityCompat
-import androidx.core.app.NotificationCompat
-import androidx.core.content.ContextCompat
 import androidx.glance.appwidget.GlanceAppWidgetManager
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewModelScope
@@ -58,11 +48,8 @@ import com.hifnawy.compose.notify.notifyer.ui.components.Scaffolding
 import com.hifnawy.compose.notify.notifyer.viewModel.MainActivityViewModel
 import kotlinx.coroutines.launch
 import java.util.UUID
-import kotlin.random.Random
 
 class MainActivity : ComponentActivity() {
-
-    private val notificationIdsSent = mutableListOf<Int>()
 
     /**
      * Called when the activity is starting. Responsible for setting up the
@@ -85,7 +72,6 @@ class MainActivity : ComponentActivity() {
         setContent {
             val context = LocalContext.current
             val viewModel = viewModel<MainActivityViewModel>()
-            val notificationManager by remember { mutableStateOf(getSystemService(NotificationManager::class.java) as NotificationManager) }
             var updateNotification by remember { mutableStateOf<Notification?>(null) }
             var isEditDialogVisible by remember { mutableStateOf(false) }
             var isDeleteAllDialogVisible by remember { mutableStateOf(false) }
@@ -96,7 +82,7 @@ class MainActivity : ComponentActivity() {
             }
 
             LaunchedEffect(Unit) {
-                checkNotificationPermission(context, launcher) { shouldShowRationale = true }
+                ONotificationManager.checkNotificationPermission(this@MainActivity, launcher) { shouldShowRationale = true }
             }
 
             MainScreen(
@@ -131,12 +117,9 @@ class MainActivity : ComponentActivity() {
 
                     },
                     onDeleteAllDismiss = { isDeleteAllDialogVisible = false },
-                    onClearAllClick = {
-                        notificationManager.cancelAll()
-                        notificationIdsSent.clear()
-                    },
+                    onClearAllClick = { ONotificationManager.cancelNotifications(context) },
                     onClearAndInsertClick = {
-                        val newList = (1 .. 30).map { index ->
+                        val newList = (1..30).map { index ->
                             Notification(
                                     id = UUID.randomUUID(),
                                     title = "Notification #${index.toString().padStart(2, '0')} Title",
@@ -150,14 +133,17 @@ class MainActivity : ComponentActivity() {
                         isEditDialogVisible = true
                     },
                     onItemButtonClick = { notification ->
-                        sendNotification(
-                                context = context,
+                        ONotificationManager.checkNotificationPermission(
+                                activity = this,
                                 launcher = launcher,
-                                notificationManager = notificationManager,
-                                notification = notification,
                                 onShowRationale = { shouldShowRationale = true }
+                        )
+
+                        ONotificationManager.sendNotification(
+                                context = context,
+                                notification = notification,
                         ) { notificationId ->
-                            notificationIdsSent.add(notificationId)
+                            Log.d(this@MainActivity::class.simpleName, "Notification sent with ID: $notificationId")
                         }
                     },
                     onEditConfirm = { notification, isUpdate ->
@@ -323,46 +309,6 @@ class MainActivity : ComponentActivity() {
     }
 
     /**
-     * Checks if the app has permission to post notifications.
-     * If the app has permission, does nothing.
-     * If the app does not have permission, requests permission.
-     *
-     * @param context [Context] The context in which the permission is checked.
-     * @param launcher [ActivityResultLauncher<String>][ActivityResultLauncher] The launcher to be used to request permission.
-     * @param onShowRationale [() -> Unit][onShowRationale] The callback function to be used when the rationale dialog should be shown.
-     */
-    private fun checkNotificationPermission(
-            context: Context,
-            launcher: ActivityResultLauncher<String>,
-            onShowRationale: () -> Unit = {}
-    ) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            when {
-                ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS)
-                        == PackageManager.PERMISSION_GRANTED -> {
-                    Log.d(this@MainActivity::class.simpleName, "Notification permission granted")
-                    // proceed to send notification
-                }
-
-                ActivityCompat.shouldShowRequestPermissionRationale(
-                        this,
-                        Manifest.permission.POST_NOTIFICATIONS
-                )                                            -> {
-                    Log.d(this@MainActivity::class.simpleName, "Show rationale")
-                    onShowRationale()
-                }
-
-                else                                         -> {
-                    Log.d(this@MainActivity::class.simpleName, "Requesting notification permission")
-                    launcher.launch(Manifest.permission.POST_NOTIFICATIONS)
-                }
-            }
-        } else {
-            // pre-Android 13: permission is always granted
-        }
-    }
-
-    /**
      * Updates or adds a new notification to the list of notifications.
      *
      * @param notification [Notification] The notification to be updated or added.
@@ -384,84 +330,6 @@ class MainActivity : ComponentActivity() {
                 viewModelScope.launch { viewModel.lazyListState.scrollToItem(viewModel.notifications.size - 1) }
             }
         }
-    }
-
-    /**
-     * Sends a notification with the given title and message.
-     *
-     * @param context [Context] The Context in which the notification is sent.
-     * @param launcher [ActivityResultLauncher<String>][ActivityResultLauncher] The launcher to be used to request permission.
-     * @param notificationManager [NotificationManager] The NotificationManager used to send the notification.
-     * @param notification [Notification] The Notification to be sent.
-     * @param onShowRationale [() -> Unit][onShowRationale] A callback function to be called when the rationale dialog should be shown.
-     * @param onNotificationSent [(notificationId: Int) -> Unit = {}][onNotificationSent] A callback function to be called when the notification is sent.
-     */
-    private fun sendNotification(
-            context: Context,
-            launcher: ActivityResultLauncher<String>,
-            notificationManager: NotificationManager,
-            notification: Notification,
-            onShowRationale: () -> Unit = {},
-            onNotificationSent: (notificationId: Int) -> Unit = {}
-    ) {
-        checkNotificationPermission(context = context, launcher = launcher, onShowRationale = onShowRationale)
-
-        val notificationBuilder = NotificationCompat.Builder(context, "NOTIFICATIONS_CHANNEL_ID").apply {
-            val pendingIntent = PendingIntent.getActivity(
-                    context,
-                    0,
-                    // TODO: add the notification model id to the intent so that it can be used to scroll to the notification in the list
-                    Intent(context, MainActivity::class.java),
-                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-            )
-            setContentIntent(pendingIntent)
-            // setSubText(notification.subText)
-            setContentTitle(notification.title)
-            setContentText(notification.message)
-            setAllowSystemGeneratedContextualActions(true)
-            setGroup(context.getString(R.string.app_name))
-            setPriority(NotificationManager.IMPORTANCE_MAX)
-            setCategory(NotificationCompat.CATEGORY_REMINDER)
-            setContentInfo(context.getString(R.string.app_name))
-            setBadgeIconType(NotificationCompat.BADGE_ICON_LARGE)
-            setSmallIcon(R.drawable.notifications_24px)
-            setGroupAlertBehavior(NotificationCompat.GROUP_ALERT_ALL)
-        }
-
-        val summaryNotificationBuilder: NotificationCompat.Builder? =
-                if (notificationIdsSent.isNotEmpty()) {
-                    NotificationCompat.Builder(context, context.getString(R.string.app_name))
-                        .setSubText("${notificationIdsSent.size} New Notifications")
-                        .setContentText("${notificationIdsSent.size} New Notifications")
-                        .setContentTitle("${notificationIdsSent.size} New Notifications")
-                        .setGroup(context.getString(R.string.app_name))
-                        .setPriority(NotificationManager.IMPORTANCE_MAX)
-                        .setCategory(NotificationCompat.CATEGORY_REMINDER)
-                        .setContentInfo(context.getString(R.string.app_name))
-                        .setBadgeIconType(NotificationCompat.BADGE_ICON_LARGE)
-                        .setSmallIcon(R.drawable.notifications_24px)
-                        .setGroupSummary(true)
-                        .setGroupAlertBehavior(NotificationCompat.GROUP_ALERT_ALL)
-                } else {
-                    null
-                }
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel("NOTIFICATIONS_CHANNEL_ID", "Notifications", NotificationManager.IMPORTANCE_HIGH).apply {
-                description = "Notifications Channel"
-            }
-
-            notificationManager.createNotificationChannel(channel)
-            notificationBuilder.setChannelId(channel.id)
-            summaryNotificationBuilder?.setChannelId(channel.id)
-        }
-
-        val notificationId = Random.nextInt()
-
-        notificationManager.notify(notificationId, notificationBuilder.build())
-        summaryNotificationBuilder?.let { notificationManager.notify(0, it.build()) }
-
-        onNotificationSent(notificationId)
     }
 
     /**

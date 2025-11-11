@@ -1,6 +1,5 @@
 package com.hifnawy.compose.notify.notifyer.ui.theme
 
-import android.content.Context
 import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi

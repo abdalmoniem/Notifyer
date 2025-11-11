@@ -1,11 +1,11 @@
 package com.hifnawy.compose.notify.notifyer.ui.components
 
-import android.app.NotificationChannel
-import android.app.NotificationManager
-import android.app.PendingIntent
+import android.Manifest
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.os.Build
+import android.util.Log
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -13,7 +13,6 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.app.NotificationCompat
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.glance.GlanceId
@@ -49,6 +48,7 @@ import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
 import com.hifnawy.compose.notify.notifyer.MainActivity
+import com.hifnawy.compose.notify.notifyer.ONotificationManager
 import com.hifnawy.compose.notify.notifyer.R
 import com.hifnawy.compose.notify.notifyer.dataStore.DataStoreInstance
 import com.hifnawy.compose.notify.notifyer.model.Notification
@@ -56,7 +56,6 @@ import com.hifnawy.compose.notify.notifyer.ui.components.AppWidget.Companion.KEY
 import com.hifnawy.compose.notify.notifyer.ui.theme.WidgetTheme
 import kotlinx.coroutines.flow.first
 import java.util.UUID
-import kotlin.random.Random
 
 class AppWidgetReceiver : GlanceAppWidgetReceiver() {
 
@@ -256,43 +255,35 @@ internal class PreviousNotificationAction : ActionCallback {
 internal class SendNotificationAction : ActionCallback {
 
     override suspend fun onAction(context: Context, glanceId: GlanceId, parameters: ActionParameters) {
-        val notificationManager = context.getSystemService(NotificationManager::class.java)
-
         updateAppWidgetState(context = context, glanceId = glanceId) { prefs ->
             val notifications = DataStoreInstance.getNotifications(context).first()
             val index = prefs[KEY_INDEX] ?: 0
             val notification = notifications.getOrNull(index) ?: return@updateAppWidgetState
+            var permissionGranted = false
 
-            sendNotification(context, notificationManager, notification)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                when {
+                    context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)
+                            == PackageManager.PERMISSION_GRANTED -> {
+                        Log.d(this@SendNotificationAction::class.simpleName, "Notification permission granted")
+                        permissionGranted = true
+                    }
+
+                    else                                         -> {
+                        Log.d(this@SendNotificationAction::class.simpleName, "Requesting notification permission")
+                        Intent(context, MainActivity::class.java).apply {
+                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            context.startActivity(this)
+                        }
+                    }
+                }
+            } else {
+                // pre-Android 13: permission is always granted
+                permissionGranted = true
+            }
+
+            if (permissionGranted) ONotificationManager.sendNotification(context, notification)
         }
-    }
-
-    private fun sendNotification(
-            context: Context,
-            notificationManager: NotificationManager,
-            notification: Notification
-    ) {
-        val channelId = "NOTIFICATIONS_CHANNEL_ID"
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(channelId, "Notifications", NotificationManager.IMPORTANCE_HIGH)
-            notificationManager.createNotificationChannel(channel)
-        }
-
-        val pendingIntent = PendingIntent.getActivity(
-                context,
-                0,
-                Intent(context, MainActivity::class.java),
-                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
-
-        val builder = NotificationCompat.Builder(context, channelId)
-            .setSmallIcon(R.drawable.notifications_24px)
-            .setContentTitle(notification.title)
-            .setContentText(notification.message)
-            .setContentIntent(pendingIntent)
-            .setAutoCancel(true)
-
-        notificationManager.notify(Random.nextInt(), builder.build())
     }
 }
 
