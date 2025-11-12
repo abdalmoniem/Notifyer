@@ -37,6 +37,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.Wallpapers
 import androidx.compose.ui.unit.dp
 import androidx.glance.appwidget.GlanceAppWidgetManager
+import androidx.glance.appwidget.state.updateAppWidgetState
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -160,6 +161,12 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    /**
+     * Update the glance widgets with the current list of notifications.
+     *
+     * @see [GlanceAppWidgetManager]
+     * @see [updateAppWidgetState]
+     */
     private fun updateGlanceWidgets() {
         // Use the lifecycleScope to run the suspend function
         lifecycleScope.launch {

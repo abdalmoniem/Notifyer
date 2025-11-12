@@ -256,6 +256,17 @@ val unspecified_scheme = ColorFamily(
         Color.Unspecified, Color.Unspecified, Color.Unspecified, Color.Unspecified
 )
 
+/**
+ * A theme for the app.
+ *
+ * This theme is used to provide a consistent look and feel for the app.
+ *
+ * @param darkTheme [Boolean] Whether to use dark theme or not.
+ * @param dynamicColor [Boolean] Whether to use dynamic color or not.
+ * @param content [@Composable () -> Unit] The content of the theme.
+ *
+ * @see [MaterialTheme]
+ */
 @Composable
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 fun NotifyerTheme(
@@ -285,6 +296,15 @@ fun NotifyerTheme(
     )
 }
 
+/**
+ * A theme for the app widget.
+ *
+ * This theme is used to provide a consistent look and feel for the app widget.
+ *
+ * @param content [@Composable () -> Unit] The content of the theme.
+ *
+ * @see [GlanceTheme]
+ */
 @Composable
 fun WidgetTheme(content: @Composable () -> Unit) {
     val colors = when {

@@ -19,13 +19,15 @@ import androidx.glance.GlanceId
 import androidx.glance.GlanceModifier
 import androidx.glance.GlanceTheme
 import androidx.glance.ImageProvider
+import androidx.glance.LocalContext
 import androidx.glance.action.ActionParameters
-import androidx.glance.action.actionStartActivity
+import androidx.glance.action.actionParametersOf
 import androidx.glance.action.clickable
 import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.GlanceAppWidgetReceiver
 import androidx.glance.appwidget.action.ActionCallback
 import androidx.glance.appwidget.action.actionRunCallback
+import androidx.glance.appwidget.action.actionStartActivity
 import androidx.glance.appwidget.components.SquareIconButton
 import androidx.glance.appwidget.cornerRadius
 import androidx.glance.appwidget.provideContent
@@ -53,22 +55,78 @@ import com.hifnawy.compose.notify.notifyer.R
 import com.hifnawy.compose.notify.notifyer.dataStore.DataStoreInstance
 import com.hifnawy.compose.notify.notifyer.model.Notification
 import com.hifnawy.compose.notify.notifyer.ui.components.AppWidget.Companion.KEY_INDEX
+import com.hifnawy.compose.notify.notifyer.ui.components.SendNotificationActionParameters.NotificationId
+import com.hifnawy.compose.notify.notifyer.ui.components.SendNotificationActionParameters.NotificationMessage
+import com.hifnawy.compose.notify.notifyer.ui.components.SendNotificationActionParameters.NotificationTitle
 import com.hifnawy.compose.notify.notifyer.ui.theme.WidgetTheme
 import kotlinx.coroutines.flow.first
 import java.util.UUID
 
+/**
+ * Parameters for the [SendNotificationAction]
+ *
+ * @param keyName [String] The name of the key
+ * @property NotificationId [SendNotificationActionParameters] The id of the notification to send
+ * @property NotificationTitle [SendNotificationActionParameters] The title of the notification to send
+ * @property NotificationMessage [SendNotificationActionParameters] The message of the notification to send
+ */
+private enum class SendNotificationActionParameters(keyName: String) {
+
+    NotificationId("notification-id"),
+    NotificationTitle("notification-title"),
+    NotificationMessage("notification-message");
+
+    val key: ActionParameters.Key<String> = ActionParameters.Key(keyName)
+}
+
+/**
+ * A receiver for the [AppWidget] that is responsible for handling the lifecycle of the widget.
+ *
+ * This receiver is responsible for updating the widget when the user sends a notification from the widget.
+ *
+ * @see [AppWidget]
+ */
 class AppWidgetReceiver : GlanceAppWidgetReceiver() {
 
     override val glanceAppWidget: GlanceAppWidget = AppWidget()
 }
 
+/**
+ * The main widget for the notifications app.
+ *
+ * This widget displays a list of notifications and provides controls to send a notification.
+ *
+ */
 class AppWidget : GlanceAppWidget() {
 
+    /**
+     * A companion object containing constants used by the [AppWidget].
+     *
+     * This object contains constants used by the [AppWidget] to access the preferences store.
+     *
+     * @see [AppWidget]
+     */
     internal companion object {
 
+        /**
+         * The key used to store the index of the current notification in the list.
+         *
+         * @return [Preferences.Key] The key used to store the index of the current notification in the list.
+         */
         val KEY_INDEX = intPreferencesKey("current_notification_index")
     }
 
+    /**
+     * Provides the content of the widget.
+     *
+     * This function is called when the widget is displayed and is responsible for providing the content of the widget.
+     *
+     * @param context [Context] The context of the widget.
+     * @param id [GlanceId] The id of the widget.
+     *
+     * @see [provideContent]
+     * @see [Content]
+     */
     override suspend fun provideGlance(context: Context, id: GlanceId) {
         provideContent {
             val notifications by DataStoreInstance.getNotifications(context).collectAsState(initial = emptyList())
@@ -82,8 +140,18 @@ class AppWidget : GlanceAppWidget() {
         }
     }
 
+    /**
+     * The content of the widget.
+     *
+     * This function is called when the widget is displayed and is responsible for providing the content of the widget.
+     *
+     * @param currentIndex [Int] The index of the current notification in the list.
+     * @param notifications [List<Notification>] The list of notifications to display.
+     *
+     */
     @Composable
     private fun Content(currentIndex: Int = 0, notifications: List<Notification>) {
+        val context = LocalContext.current
         val isEmpty = notifications.isEmpty()
         val notification = notifications.getOrNull(currentIndex)
 
@@ -91,7 +159,13 @@ class AppWidget : GlanceAppWidget() {
             Column(
                     modifier = GlanceModifier
                         .fillMaxSize()
-                        .clickable(actionStartActivity<MainActivity>())
+                        .clickable(
+                                onClick = actionStartActivity(
+                                        Intent(context, MainActivity::class.java).apply {
+                                            addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+                                        }
+                                )
+                        )
                         .background(GlanceTheme.colors.surface)
                         .padding(16.dp)
                         .cornerRadius(16.dp),
@@ -112,7 +186,13 @@ class AppWidget : GlanceAppWidget() {
             Column(
                     modifier = GlanceModifier
                         .fillMaxSize()
-                        .clickable(actionStartActivity<MainActivity>())
+                        .clickable(
+                                onClick = actionStartActivity(
+                                        Intent(context, MainActivity::class.java).apply {
+                                            addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+                                        }
+                                )
+                        )
                         .background(GlanceTheme.colors.surface)
                         .padding(16.dp)
                         .cornerRadius(16.dp),
@@ -171,7 +251,13 @@ class AppWidget : GlanceAppWidget() {
                             modifier = GlanceModifier.size(buttonSize),
                             imageProvider = ImageProvider(R.drawable.notifications_24px),
                             contentDescription = "Notify",
-                            onClick = actionRunCallback<SendNotificationAction>()
+                            onClick = actionRunCallback<SendNotificationAction>(
+                                    parameters = actionParametersOf(
+                                            NotificationId.key to notification.id.toString(),
+                                            NotificationTitle.key to notification.title,
+                                            NotificationMessage.key to notification.message
+                                    )
+                            )
                     )
 
                     Spacer(modifier = GlanceModifier.defaultWeight())
@@ -196,6 +282,13 @@ class AppWidget : GlanceAppWidget() {
         }
     }
 
+    /**
+     * A preview of the content of the app widget.
+     *
+     * This function is called when the app widget is displayed and is responsible for providing the content of the app widget.
+     *
+     * @see [Content]
+     */
     @Composable
     @Suppress("unused")
     @Preview(widthDp = 300, heightDp = 150)
@@ -216,8 +309,26 @@ class AppWidget : GlanceAppWidget() {
     }
 }
 
+/**
+ * An action that is triggered when the user clicks the next notification button.
+ *
+ * This action is responsible for updating the app widget state and updating the app widget.
+ *
+ * @see [AppWidget]
+ */
 internal class NextNotificationAction : ActionCallback {
 
+    /**
+     * Handles the action when the user clicks the next notification button.
+     *
+     * This function is called when the user clicks the next notification button and is responsible for updating the app widget state and updating the app widget.
+     *
+     * @param context [Context] The context of the app widget.
+     * @param glanceId [GlanceId] The id of the app widget.
+     * @param parameters [ActionParameters] The parameters of the action.
+     *
+     * @see [AppWidget]
+     */
     override suspend fun onAction(context: Context, glanceId: GlanceId, parameters: ActionParameters) {
         updateAppWidgetState(context, PreferencesGlanceStateDefinition, glanceId) { prefs ->
             val notifications = DataStoreInstance.getNotifications(context).first()
@@ -234,8 +345,26 @@ internal class NextNotificationAction : ActionCallback {
     }
 }
 
+/**
+ * An action that is triggered when the user clicks the previous notification button.
+ *
+ * This action is responsible for updating the app widget state and updating the app widget.
+ *
+ * @see [AppWidget]
+ */
 internal class PreviousNotificationAction : ActionCallback {
 
+    /**
+     * Handles the action when the user clicks the previous notification button.
+     *
+     * This function is called when the user clicks the previous notification button and is responsible for updating the app widget state and updating the app widget.
+     *
+     * @param context [Context] The context of the app widget.
+     * @param glanceId [GlanceId] The id of the app widget.
+     * @param parameters [ActionParameters] The parameters of the action.
+     *
+     * @see [AppWidget]
+     */
     override suspend fun onAction(context: Context, glanceId: GlanceId, parameters: ActionParameters) {
         updateAppWidgetState(context, PreferencesGlanceStateDefinition, glanceId) { prefs ->
             val notifications = DataStoreInstance.getNotifications(context).first()
@@ -252,43 +381,89 @@ internal class PreviousNotificationAction : ActionCallback {
     }
 }
 
+/**
+ * An action that is triggered when the user clicks the send notification button.
+ *
+ * This action is responsible for updating the app widget state and updating the app widget.
+ *
+ * @see [AppWidget]
+ */
 internal class SendNotificationAction : ActionCallback {
 
+    /**
+     * Handles the action when the user clicks the send notification button.
+     *
+     * This function is called when the user clicks the send notification button and is responsible for updating the app widget state and updating the app widget.
+     *
+     * @param context [Context] The context of the app widget.
+     * @param glanceId [GlanceId] The id of the app widget.
+     * @param parameters [ActionParameters] The parameters of the action.
+     *
+     * @see [AppWidget]
+     */
     override suspend fun onAction(context: Context, glanceId: GlanceId, parameters: ActionParameters) {
+        val notificationId = parameters[NotificationId.key] ?: return
+        val notificationTitle = parameters[NotificationTitle.key] ?: return
+        val notificationMessage = parameters[NotificationMessage.key] ?: return
+
+        val notification = Notification(
+                id = UUID.fromString(notificationId),
+                title = notificationTitle,
+                message = notificationMessage
+        )
+
+        Log.d(this@SendNotificationAction::class.simpleName, "Sending notification: $notification")
+
         updateAppWidgetState(context = context, glanceId = glanceId) { prefs ->
-            val notifications = DataStoreInstance.getNotifications(context).first()
-            val index = prefs[KEY_INDEX] ?: 0
-            val notification = notifications.getOrNull(index) ?: return@updateAppWidgetState
-            var permissionGranted = false
-
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                when {
-                    context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)
-                            == PackageManager.PERMISSION_GRANTED -> {
-                        Log.d(this@SendNotificationAction::class.simpleName, "Notification permission granted")
-                        permissionGranted = true
-                    }
-
-                    else                                         -> {
-                        Log.d(this@SendNotificationAction::class.simpleName, "Requesting notification permission")
-                        Intent(context, MainActivity::class.java).apply {
-                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                            context.startActivity(this)
-                        }
-                    }
+            val permissionGranted = when {
+                Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU -> when {
+                    context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED -> true
+                    else                                                                                                     -> false
                 }
-            } else {
                 // pre-Android 13: permission is always granted
-                permissionGranted = true
+                else                                                  -> true
             }
 
-            if (permissionGranted) ONotificationManager.sendNotification(context, notification)
+            when {
+                permissionGranted -> {
+                    Log.d(this@SendNotificationAction::class.simpleName, "Notification permission granted")
+                    Log.d(this@SendNotificationAction::class.simpleName, "Sending notification: $notification")
+                    ONotificationManager.sendNotification(context, notification)
+                }
+
+                else              -> {
+                    Log.d(this@SendNotificationAction::class.simpleName, "Notification permission not granted")
+                    Log.d(this@SendNotificationAction::class.simpleName, "Requesting notification permission")
+                    Intent(context, MainActivity::class.java).apply {
+                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+                        context.startActivity(this)
+                    }
+                }
+            }
         }
     }
 }
 
+/**
+ * An action that is triggered when the user clicks the random notification button.
+ *
+ * This action is responsible for updating the app widget state and updating the app widget.
+ *
+ * @see [AppWidget]
+ */
 internal class RandomNotificationAction : ActionCallback {
 
+    /**
+     * Handles the action when the user clicks the random notification button.
+     *
+     * This function is called when the user clicks the random notification button and is responsible for updating the app widget state and updating the app widget.
+     *
+     * @param context [Context] The context of the app widget.
+     * @param glanceId [GlanceId] The id of the app widget.
+     * @param parameters [ActionParameters] The parameters of the action.
+     *
+     * @see [AppWidget]
+     */
     override suspend fun onAction(context: Context, glanceId: GlanceId, parameters: ActionParameters) {
         updateAppWidgetState(context, PreferencesGlanceStateDefinition, glanceId) { prefs ->
             val notifications = DataStoreInstance.getNotifications(context).first()
